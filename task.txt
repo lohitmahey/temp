@@ -1,0 +1,54 @@
+1.
+SELECT u.*, c.event_time AS recent_click_time, o.event_time AS recent_open_time, s.event_time AS recent_sent_time 
+FROM `users` AS u 
+LEFT JOIN 
+clicks c ON u.email_address = c.email_address 
+LEFT JOIN 
+opens o ON u.email_address = o.email_address 
+LEFT JOIN 
+sents s ON u.email_address = s.email_address 
+WHERE 
+c.event_time = (SELECT MAX(event_time) FROM clicks c2 WHERE c2.email_address = c.email_address) 
+AND o.event_time = (SELECT MAX(event_time) FROM opens o2 WHERE o2.email_address = o.email_address) 
+AND s.event_time = (SELECT MAX(event_time) FROM sents s2 WHERE s2.email_address = s.email_address) 
+GROUP BY email_address
+
+
+2.
+SELECT email_address, COUNT(*) AS Unique_messges_opened 
+FROM (SELECT * FROM `opens` Group By message_id) AS O2 
+GROUP BY email_address
+
+
+3.
+SELECT users.*, c.message_id AS last_message_id 
+FROM `users` 
+Left JOIN 
+clicks c ON users.email_address = c.email_address 
+WHERE 
+event_time = ( SELECT max(event_time) FROM clicks cl WHERE cl.email_address = users.email_address)
+
+
+4.
+SELECT s.*, 
+(CASE WHEN c2.id IS NULL THEN "FALSE" ELSE "TRUE" END) AS Clicked, 
+(CASE WHEN o2.id IS NULL THEN "FALSE" ELSE "TRUE" END) AS Opened 
+FROM `sents` as s 
+LEFT JOIN ( SELECT * FROM clicks GROUP BY message_id) AS c2 USING(message_id) 
+LEFT JOIN ( SELECT * FROM opens GROUP BY message_id) AS o2 USING(message_id)
+
+
+5.
+SELECT s.*, 
+(CASE WHEN c2.id IS NULL THEN "FALSE" ELSE "TRUE" END) AS Clicked, 
+(CASE WHEN o2.id IS NULL THEN "FALSE" ELSE "TRUE" END) AS Opened, 
+c3.event_time AS lastClicked, o3.event_time AS lastOpened 
+FROM `sents` as s 
+LEFT JOIN
+( SELECT * FROM clicks GROUP BY message_id) AS c2 USING(message_id) 
+LEFT JOIN 
+( SELECT * FROM opens GROUP BY message_id) AS o2 USING(message_id)
+LEFT JOIN
+(SELECT * FROM `clicks` where event_time = ( SELECT max(event_time) from clicks as clicks_new WHERE clicks.message_id = clicks_new.message_id)) AS c3 USING(message_id)
+LEFT JOIN
+(SELECT * FROM `opens` where event_time = ( SELECT max(event_time) from opens as opens_new WHERE opens.message_id = opens_new.message_id)) AS o3 USING(message_id)
